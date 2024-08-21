@@ -26,3 +26,5 @@ ncRNA-AI
 ├── env.yaml                  | Dependencies
 ...
 ```
+
+Additional information may be found in each file's header.
