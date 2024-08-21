@@ -15,6 +15,7 @@ ncRNA-AI
 │   ├── relDS.py              | Implements RelationDataset class
 │   └── llm_re.py             | Implements an Ollama-based LLM binary classification framework
 ├── utils                     | Contains other utility python scripts
+├── misc                      | Contains supporting jupyter notebooks for data/output analysis
 ├── data                      | Contains the data (raw and processed) used by the pipelines
 ├── outputs                   | Contains the final outputs from the pipelines
 ├── ncoRP_creation.py         | ncoRP corpus creation pipeline
