@@ -4,9 +4,9 @@ David da Costa Correia @ FCUL & INSA
 """
 
 ### Settings ###
-ARTICLES_FILE = '../data/asd_articles.json'
-OUTPUT_FOLDER = '../outputs/asd/'
-N_WORKERS = 8
+ARTICLES_FILE = './data/asd_articles.json'
+OUTPUT_FOLDER = './outputs/asd/'
+N_WORKERS = 12
 VERBOSE = True
 ################
 
@@ -14,7 +14,6 @@ import os
 import json
 import obonet
 import ast
-import subprocess
 import pandas as pd
 import networkx as nx
 import multiprocessing as mp
@@ -116,7 +115,7 @@ def main():
 		)
 	
 	with open(ARTICLES_FILE, 'r') as f:
-		articles = json.load(f)[:20]
+		articles = json.load(f)
 
 	if VERBOSE: 
 		n_articles = len(articles)
@@ -127,7 +126,7 @@ def main():
 	if VERBOSE: print('\nLoading lexicons', flush=True)
 	phen_lexicon = 'asd-phenotypes'
 	if phen_lexicon not in merpy.get_lexicons()[1]: 
-		ont = obonet.read_obo('../data/hp.obo')
+		ont = obonet.read_obo('./data/hp.obo')
 		# Get only the descendants of Autistic Behaviour (HP:0000729)
 		ont_phens = nx.ancestors(ont, 'HP:0000729')
 		ont_phens.add('HP:0000729') # inclusive
@@ -146,7 +145,41 @@ def main():
 				phen_maps[name.lower()] = _id
 		create_merpy_lexicon(phen_lexicon, list(phen_maps.keys()), phen_maps)
 
-	rna_lexicon = 'ncrnas-rnac' # ncRNA lexicon is the same as in corpus_creation.py
+	rna_lexicon = 'ncrnas-rnac'
+	if rna_lexicon not in merpy.get_lexicons()[1]: 
+		aliases_df = pd.read_csv('./data/hgnc_rna_aliases.txt', sep='\t')
+		rna_aliases = {} # {rna:[aliases]}
+		for _,row in aliases_df.iterrows():
+			rna, prev_names, alias_names = row
+			row_aliases = []
+			if not pd.isna(prev_names):
+				row_aliases.extend(prev_names.split(', '))
+			if not pd.isna(alias_names):
+				row_aliases.extend(alias_names.split(', '))
+			if row_aliases:
+				rna_aliases[rna.lower()] = row_aliases
+		# Pre-compute RNA IDs
+		rna_ids_df = pd.read_csv('./data/RNACentral_mapping_human.csv', sep='\t', header=None)
+		rna_maps = {} # {rna:id}
+		for _,row in rna_ids_df.iterrows():
+			rnac_id, ext_id, name = row
+			if not isinstance(name, float): # not NaN?
+				rna_maps[name.lower()] = rnac_id
+			if not isinstance(ext_id, float): # not NaN?
+				rna_maps[ext_id.lower()] = rnac_id
+		del rna_ids_df
+		# Expand ID dict with aliases
+		for rna,aliases in rna_aliases.items():
+			rna_id = rna_maps.get(rna)
+			if rna_id is not None:
+				for alias in aliases:
+					alias = alias.lower()
+					if alias not in rna_maps.keys():
+						rna_maps[alias] = rna_id
+		ignore = set(['ncRNA', 'non-coding RNA', 'lncRNA', 'small nuclear RNA', 'TR', 'E', 'REST', 'LUST', 'RAIN', 'PLANE'])
+		for name in ignore:
+			rna_maps.pop(name.lower(), None)
+		create_merpy_lexicon(rna_lexicon, list(rna_maps.keys()), rna_maps)
 
 
 	### GET SENTENCES WITH MENTIONS ###
@@ -190,6 +223,8 @@ def main():
 
 	# Filter out uncertain sentences
 	if VERBOSE: print(f'\nQuerying LLM to filter uncertains', flush=True)
+	model = 'phi3'
+
 	prompt_u = (
 		'Do you think the following sentence conveys information about the relation between "{e1}" and "{e2}" in a clear way? Sentence: "{sentence}"\n'
 		'You must also explain the reasoning behind your answer\n'
@@ -197,14 +232,14 @@ def main():
 	)
 	query_template_u = 'Do you think the following sentence conveys information about the relation between "{e1}" and "{e2}" in a clear way? Sentence: "{sentence}"'
 
-	raw_examples_u = load_examples('../llms/data/llm_examples_u.json')
+	raw_examples_u = load_examples('./data/llms/llm_examples_u.json')
 	example_template_u = '###Example: Do you think the following sentence conveys information about the relation between "{e1}" and "{e2}" in a clear way? Sentence: "{sentence}"\n ###Expected Response: {response}'
 	examples_u = format_examples(raw_examples_u, example_template_u)
 
 	llm_u = LLMClassifier(
-		model='llama3',
+		model=model,
 		base_prompt=prompt_u,
-		examples=(2,examples_u),
+		examples=(10,examples_u),
 		query_template=query_template_u,
 		response_parser=llm_response_parser,
 		options=None,
@@ -240,14 +275,14 @@ def main():
 	)
 	query_template = 'Identify if there is an explicit relation between "{e1}" and "{e2}" in the following sentence: "{sentence}".'
 
-	raw_examples = load_examples('../llms/data/llm_examples.json')
+	raw_examples = load_examples('./data/llms/llm_examples.json')
 	example_template = '###Example: Identify if there is an explicit relation between "{e1}" and "{e2}" in the following sentence: "{sentence}". ###Expected Response: {response}'
 	examples = format_examples(raw_examples, example_template)
 
 	llm = LLMClassifier(
-		model='llama3',
+		model=model,
 		base_prompt=prompt,
-		examples=(2,examples),
+		examples=(10,examples),
 		query_template=query_template,
 		response_parser=llm_response_parser,
 		options=None,
@@ -284,7 +319,6 @@ def main():
 
 	output_df = pd.DataFrame(rows)
 	output_df.to_csv(OUTPUT_FOLDER+'asd_rels.csv', sep='\t', index=None, na_rep='None')	
-	# subprocess.run(['../utils/push.sh'], capture_output=True)
 
 
 if __name__ == '__main__':

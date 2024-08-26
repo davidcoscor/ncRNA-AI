@@ -81,7 +81,7 @@ import networkx as nx
 import merpy
 
 import dataset_creation
-import articles_download
+import src.articles_download as articles_download
 
 
 RNA_COLUMN = RNA_NAME_COLUMN if RNA_ID_COLUMN is None else RNA_ID_COLUMN

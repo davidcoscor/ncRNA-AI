@@ -29,7 +29,7 @@ ARGS = {
 	'PHEN_ID_COLUMN': 'HPO ID',
 	# NER settings
 	'DISTANCE_METRIC': 'l2',
-    'MAX_DISTANCE': 0.5,
+    'MAX_DISTANCE': 0.9,
     'BATCH_SIZE': 1000,
     'DO_ANCESTOR_PROPAGATION': True,
 	# Others
@@ -175,19 +175,19 @@ def main(args=ARGS):
 
 	# Add databases
 	# ncrPheno
-	inputs_ncr = ['../data/Evidence_information.txt']
+	inputs_ncr = ['./data/Evidence_information.txt']
 	dataset.add_database(inputs_ncr, process_ncr, 'ncrPheno')
 	# RIscoper
-	inputs_rsc = ['../data/All-RNA-Disease_NER.txt', '../data/All-RNA-Disease_Sentence.txt']
+	inputs_rsc = ['./data/All-RNA-Disease_NER.txt', './data/All-RNA-Disease_Sentence.txt']
 	dataset.add_database(inputs_rsc, process_rsc, 'RIscoper')
 	# HMDD
-	inputs_hmdd = ['../data/hmdd_data_v4.txt']
+	inputs_hmdd = ['./data/hmdd_data_v4.txt']
 	dataset.add_database(inputs_hmdd, process_hmdd, 'HMDD')
 	# lncRNA Disease
-	inputs_lnc = ['../data/lncDD_causal_data.tsv']
+	inputs_lnc = ['./data/lncDD_causal_data.tsv']
 	dataset.add_database(inputs_lnc, process_lnc, 'lncRNA-Disease')
 	# RNADisease
-	inputs_rnad = ['../data/RNADiseasev4.0_RNA-disease_experiment_all.xlsx', '../data/hp.obo']
+	inputs_rnad = ['./data/RNADiseasev4.0_RNA-disease_experiment_all.xlsx', './data/hp.obo']
 	dataset.add_database(inputs_rnad, process_rnad, 'RNADisease')
 	
 
@@ -203,9 +203,9 @@ def main(args=ARGS):
 	warnings.filterwarnings("ignore")
 	model = SentenceTransformer('all-MiniLM-L6-v2')
 	collection = create_embedding_collection(
-		path='../data/embeddings.csv',
+		path='./data/embeddings.csv',
 		model=model,
-		ontology_file='../data/hp.obo',
+		ontology_file='./data/hp.obo',
 		verbose=True
 	)
 	no_ids = dataset_df[dataset_df[PHEN_ID_COLUMN].isna()] # Rows that don't have IDs yet
@@ -232,15 +232,18 @@ def main(args=ARGS):
 		analysis['HPO ID'] = hpo_ids
 		analysis['Disease'] = diseases
 		analysis = analysis.drop_duplicates(subset='Disease')
-		ont = obonet.read_obo('../data/hp.obo')
+		ont = obonet.read_obo('./data/hp.obo')
 		term_names = {node:ont.nodes[node]['name'] for node in ont.nodes}
 		def get_name(x):
 			return term_names.get(x, x)
 		analysis['Term Name'] = analysis['HPO ID'].apply(get_name)
 		negatives = analysis[analysis['HPO ID'].isna()].sample(int(NER_ANALYSIS_SIZE/2), random_state=1)
-		positives = analysis[~analysis['HPO ID'].isna()].sample(int(NER_ANALYSIS_SIZE/2), random_state=1)
-		analysis = pd.concat([negatives, positives], ignore_index=True)
-		analysis.to_csv(f"./ner_analysis_{DISTANCE_METRIC}_{str(MAX_DISTANCE).replace('.','_')}.csv", sep='\t', index=False, na_rep='None')
+		try:
+			positives = analysis[~analysis['HPO ID'].isna()].sample(int(NER_ANALYSIS_SIZE/2), random_state=1)
+			analysis = pd.concat([negatives, positives], ignore_index=True)
+			analysis.to_csv(f"./ner_analysis_{DISTANCE_METRIC}_{str(MAX_DISTANCE).replace('.','_')}.csv", sep='\t', index=False, na_rep='None')
+		except:
+			print('Not enough attributed IDs, analysis not possible.')
 		print('PRODUCE_NER_ANALYSIS given as True. Done and exiting.')
 		exit()
 
@@ -257,7 +260,7 @@ def main(args=ARGS):
 	if VERBOSE: print('\nAdding RNA aliases and IDs', flush=True)
 	# Pre-compute RNA aliases
 	if VERBOSE: print('\tLoading RNA aliases', flush=True)
-	aliases_df = pd.read_csv('../data/hgnc_rna_aliases.txt', sep='\t')
+	aliases_df = pd.read_csv('./data/hgnc_rna_aliases.txt', sep='\t')
 	rna_aliases = {} # {rna:[aliases]}
 	for _,row in aliases_df.iterrows():
 		rna, prev_names, alias_names = row
@@ -271,7 +274,7 @@ def main(args=ARGS):
 
 	# Pre-compute RNA IDs
 	if VERBOSE: print('\tLoading RNA IDs', flush=True)
-	rna_ids_df = pd.read_csv('../data/RNACentral_mapping_human.csv', sep='\t', header=None)
+	rna_ids_df = pd.read_csv('./data/RNACentral_mapping_human.csv', sep='\t', header=None)
 	rna_ids = {} # {rna:id}
 	for _,row in rna_ids_df.iterrows():
 		rnac_id, ext_id, name = row
@@ -327,7 +330,7 @@ def main(args=ARGS):
 		# Precompute phenotype ancestors
 		if VERBOSE: print('\nPropagating relations to phenotype ancestors', flush=True)
 		if VERBOSE: print('\tLoading phenotype ancestors', flush=True)
-		ontology = obonet.read_obo('../data/hp.obo')
+		ontology = obonet.read_obo('./data/hp.obo')
 		term_ancestors = {}
 		term_names = {}
 		for _id in ontology.nodes:
