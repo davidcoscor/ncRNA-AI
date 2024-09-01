@@ -6,8 +6,8 @@ Supervised by Hugo Martiniano, PhD and Francisco Couto, PhD.
 Executed at FCUL & INSA, Portugal in 2023-2024.
 
 ### Main Contributions
-- a ncRNA-Phenotype Relational Corpus (ncoRP)
-- a ncRNA-Phenotype Relation Dataset aggregating 5 databases
+- a ncRNA-Phenotype Relational Corpus (ncoRP) [Download](https://drive.google.com/drive/folders/1tbc7ixW3M9VzvsLq9zYTBVLj8pUhhTiT?usp=sharing)
+- a ncRNA-Phenotype Relation Dataset aggregating 5 databases [Download](https://drive.google.com/file/d/188yDkbhe-FRWldzYFyLF695kr8yt3iC0/view?usp=sharing)
 - an embedding-based Entity Linking pipeline (using FAISS and SentenceTransformers)
 - an Ollama-based LLM binary classification framework
   - supporting an LLM Relation Extracting methodology
