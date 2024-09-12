@@ -10,7 +10,7 @@ N_SAMPLES = 100
 SAMPLE_SIZE = 40
 OVERLAP_SIZE = 20
 # Forms 
-FORMS_FILE = 'forms.json'
+FORMS_FILE = '../outputs/validation/form_responses.json'
 #######################################################################
 
 import copy
