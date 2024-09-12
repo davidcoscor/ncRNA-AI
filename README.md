@@ -10,7 +10,7 @@ Executed at FCUL & INSA, Portugal in 2023-2024.
 - a ncRNA-Phenotype Relation Dataset aggregating 5 databases [Download](https://drive.google.com/file/d/188yDkbhe-FRWldzYFyLF695kr8yt3iC0/view?usp=sharing)
 - an embedding-based Entity Linking pipeline (using FAISS and SentenceTransformers)
 - an Ollama-based LLM binary classification framework
-  - supporting an LLM Relation Extracting methodology
+  - supporting an LLM Relation Extraction methodology
 
 All the described pipelines are easily adaptable to work with any pair of entities.
 
