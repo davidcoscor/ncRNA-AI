@@ -99,7 +99,7 @@ def control():
 			queries=queries, 
 			true_labels=true_labels, 
 			log_file=f'./outputs/chained/control_{k}.json', 
-			LLM_REs=llms, 
+			classifiers=llms, 
 			verbose=True
 		)
 		### SAVE PREDS ###
@@ -109,7 +109,7 @@ def control():
 			n_shots = llm_info['n_shots']
 			save_preds(
 				file=f'./outputs/chained/control_preds/{model}_{n_shots}_{k}.csv',
-				llm_re=llm,
+				classifier=llm,
 				preds=all_preds[i],
 				true_labels=true_labels,
 				metadatas=metadatas
@@ -171,7 +171,7 @@ def chained():
 			queries=queries, 
 			true_labels=true_labels, 
 			log_file=f'./outputs/chained/unc_{k}.json', 
-			LLM_REs=llms_u, 
+			classifiers=llms_u, 
 			verbose=True
 		)
 		
@@ -192,7 +192,7 @@ def chained():
 			queries=filtered_queries, 
 			true_labels=filtered_true_labels, 
 			log_file=f'./outputs/chained/chained_{k}.json', 
-			LLM_REs=llms, 
+			classifiers=llms, 
 			verbose=True
 		)
 
@@ -203,7 +203,7 @@ def chained():
 			n_shots = llm_info['n_shots']
 			save_preds(
 				file=f'./outputs/chained/chained_preds/{model}_{n_shots}_{k}.csv',
-				llm_re=llm,
+				classifier=llm,
 				preds=all_preds[i],
 				true_labels=filtered_true_labels[i],
 				metadatas=filtered_metadatas[i]
@@ -265,7 +265,7 @@ def validation():
 			queries=queries, 
 			true_labels=true_labels, 
 			log_file=f'./outputs/chained/val_unc_{k}.json', 
-			LLM_REs=llms_u, 
+			classifiers=llms_u, 
 			verbose=True
 		)
 		
@@ -286,7 +286,7 @@ def validation():
 			queries=filtered_queries, 
 			true_labels=filtered_true_labels, 
 			log_file=f'./outputs/chained/val_chained_{k}.json', 
-			LLM_REs=llms, 
+			classifiers=llms, 
 			verbose=True
 		)
 
@@ -297,7 +297,7 @@ def validation():
 			n_shots = llm_info['n_shots']
 			save_preds(
 				file=f'./outputs/chained/val_chained_preds/{model}_{n_shots}_{k}.csv',
-				llm_re=llm,
+				classifier=llm,
 				preds=all_preds[i],
 				true_labels=filtered_true_labels[i],
 				metadatas=filtered_metadatas[i]

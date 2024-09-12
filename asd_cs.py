@@ -250,7 +250,7 @@ def main():
 
 	save_preds(
 		file=OUTPUT_FOLDER+'llm_preds_u.csv',
-		llm_re=llm_u,
+		classifier=llm_u,
 		preds=preds_u,
 		metadatas=metadatas,
 	)
@@ -259,7 +259,7 @@ def main():
 	filtered_metadatas = []
 	filtered_annotations = []
 	for i,pred in enumerate(preds_u):
-		if isinstance(pred,dict) and pred['answer'] == 1:
+		if isinstance(pred,dict) and pred['answer'] == 1: # if sentence not uncertain and answer not invalid
 			filtered_queries.append(queries[i])
 			filtered_metadatas.append(metadatas[i])
 			filtered_annotations.append(annotations[i])
@@ -295,7 +295,7 @@ def main():
 	### OUTPUT ###
 	save_preds(
 		file=OUTPUT_FOLDER+'llm_preds.csv',
-		llm_re=llm,
+		classifier=llm,
 		preds=preds,
 		metadatas=filtered_metadatas,
 	)

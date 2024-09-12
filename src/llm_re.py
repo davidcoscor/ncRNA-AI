@@ -1,16 +1,13 @@
 """
-Ollama LLM-based Relation Extraction Tool
+Ollama LLM Binary Classification Tool
 David da Costa Correia @ FCUL & INSA
-
-- Usage example:
-
 """
 
+import pandas as pd
+import os
+import json
 import itertools
 import random
-import pandas as pd
-import json
-import os
 from time import time
 
 import ollama
@@ -18,29 +15,30 @@ import ollama
 class LLMClassifier:
 	"""
 	LLMClassifier wraps `ollama.generate()` to enable handling and evaluation of binary classification-like answers.
-	Supports few-shot prompting and custom response parsing.
+	Supports few-shot prompting and custom response parsing. NOTE: Voting not completely implemented.
 	"""
 	def __init__(
-		self, model:str, base_prompt:str, examples:tuple=None,
+		self, model:str, base_prompt:str, examples:tuple[int,list|set]=None,
 		query_template:str=None, response_parser:callable=None,
 		options:dict=None, timeout=None
 		):
 		"""
 		:param model: The name of the model, as it would be passed to ollama
 		:type model: str
-		:param base_prompt: The base prompt that will be passed to the model.
-		Can be a formatted str if queries are dict, for more information see `LLMClassifier.predict()`.
+		:param base_prompt: The base prompt. Can be a formatted str if queries are dict, for more information see 
+		`LLMClassifier.predict()`.
 		:type base_prompt: str
-		:param examples: For few-shot prompting. `(n_shots:int, examples:[list,set])`, `list` for the first `n_shots` ordered examples, `set` for `n_shots` random examples.
+		:param examples: For few-shot prompting. `(n_shots:int, examples:[list,set])`, `list` for the first `n_shots` ordered examples, 
+		`set` for `n_shots` random examples.
 		:type examples: tuple, optional
 		:param query_template: formatted str, required when queries are dict, for more information see `LLMClassifier.predict()`.
 		:type query_template: str, optional
-		:param response_parser: Function applied to `ollama.generate()['response']`, recommended.
+		:param response_parser: Function applied to `ollama.generate()['response']`, must return dict if the parsing was successful and str otherwise.
 		:type response_parser: callable, optional
 		:param options: For additional options supported by ollama. See https://pypi.org/project/ollama-python/#:~:text=Valid%20Options/Parameters
 		:type options: dict, optional
-		:param timeout: The max response time for a query in seconds
-		:type timeout: int
+		:param timeout: The max response time for a query, in seconds.
+		:type timeout: int, optional
 		"""
 		self.client = ollama.Client(timeout=timeout)
 		self.base_prompt =  base_prompt
@@ -61,7 +59,7 @@ class LLMClassifier:
 		if self.voting:
 			assert len(model)%2 != 0, "Number of voters must be odd to avoid draws." # TEMP until weighted votes
 
-	def _process_examples(self):
+	def _process_examples(self) -> str:
 		"""
 		Called by the constructor to process the examples into a text block to be used in the prompt.
 		"""
@@ -75,8 +73,9 @@ class LLMClassifier:
 		example_text = "\n".join(self.examples)
 		return example_text
 
-	def _query_llm(self, model, prompt):
+	def _query_llm(self, model:str, prompt:str) -> dict|str:
 		"""
+		Called by `LLMClassifier.predict()`. 
 		Calls `ollama.generate()` and returns the response. Parses the response if self.response_parser was passed.
 		"""
 		response = self.client.generate(model=model, prompt=prompt, options=self.options)["response"]
@@ -87,8 +86,8 @@ class LLMClassifier:
 	
 	def _log(self, log_file, results):
 		"""
-		Called by LLMClassifer.evaluate() to process `results` and write them to `log_file`.
-		For custom processing of results and logging, implement custom _log() function. 
+		Called by `LLMClassifer.evaluate()` to process `results` and write them to `log_file`.
+		For custom processing of results and logging, implement custom `_log()` function. 
 		"""
 		# Compute metrics
 		N, tp, fp, fn, inv, time = results
@@ -133,9 +132,16 @@ class LLMClassifier:
 		with open(log_file, 'w') as f:
 			json.dump(log, f, indent=1)
 
-	def predict(self, query, verbose:bool=False):
-		"""
-		
+	def predict(self, query:dict|str, verbose:bool=False) -> dict|str:
+		"""Calls `LLMClassifier._query_llm()` to make a prediction for a given `query`.
+
+		:param query: The instance to be predicted. It will be appended in the end of the prompt.
+		If `LLMClassifier.query_template` was passed, query must be dict. This is useful to apply the same template to multiple instances.
+		:type query: dict | str
+		:param verbose: verbose?, defaults to False.
+		:type verbose: bool, optional
+		:return: The LLM prediction. It will be dict if the response was successfuly parsed, else it will be str.
+		:rtype: dict|str
 		"""
 		if self.query_template:
 			assert isinstance(query, dict), "query_template provided. query must be dict with keys of query_template"
@@ -161,12 +167,21 @@ class LLMClassifier:
 		if verbose: print(f'Answer: \n{pred}\n\n')
 		return pred
 
-	def evaluate(self, queries:list, true_labels:list=None, log_file:str=None, verbose:bool=False):
-		'''
-		Calls predict on all sentences and evaluates results, appeding to log_file
-		:true_labels: list of int - the label for each text, queries[i] has label true_labels[i]
-		:log_file: if not None - append prompt, model and results to log_file
-		'''
+	def evaluate(self, queries:list[dict]|list[str], true_labels:list[int]=None, log_file:os.PathLike=None, verbose:bool=False) -> list:
+		"""Calls predict on all `queries` and evaluates results if `true_labels` are passed, appeding to `log_file`.
+
+		:param queries: The list of all queries to be predicted.
+		:type queries: list[dict] | list[str]
+		:param true_labels: The list of true labels of each query, true_labels[i] must refer to queries[i],
+		passed the predictions are evaluated.
+		:type true_labels: list[int], optional
+		:param log_file: The JSON file to log the evaluation results, required if true_labels was passed.
+		:type log_file: os.PathLike, optional
+		:param verbose: verbose?, defaults to False.
+		:type verbose: bool, optional
+		:return: A list of all model predictions.
+		:rtype: list
+		"""
 		if true_labels:
 			assert len(queries) == len(true_labels), "Mismatch in texts and true_labels sizes."
 		if verbose: print(f'Model: {self.model}')
@@ -186,7 +201,8 @@ class LLMClassifier:
 		if verbose: print('\nDone\n')
 		
 		# Evaluate
-		if log_file and true_labels:
+		if true_labels:
+			assert log_file, "log_file is required, because true_labels was passed."
 			tp, fp, fn = 0, [], []
 			invalid = []
 			for i,pred in enumerate(preds):
@@ -224,14 +240,16 @@ def rank_models(k, log_file:str, rank_file:str=None):
 	return best_entries
 
 
-def queue_evaluation(queries:list, true_labels:list, LLM_REs:list, log_file:str=False, verbose=False):
-	'''Calls `LLM_RE.evaluate(queries, true_labels, log_file, verbose)` for each LLM_RE instance in `LLM_REs`
-	:param queries: use list of lists to call different queries on each model queries[i] will be called on LLM_REs[i]
+def queue_evaluation(queries:list[dict]|list[str]|list[list], true_labels:list[int], classifiers:list[LLMClassifier], log_file:str=False, verbose=False):
+	'''Calls `LLMClassifier.evaluate(queries, true_labels, log_file, verbose)` for each LLMClassifier instance in `classifiers`
+	
+	:param queries: The list of queries. Use list[list] to call different queries on each model queries[i] will be called on classifiers[i].
+	:type queries: list
 	'''
 	diff_queries = isinstance(queries[0], list)
 	all_preds = []
-	for i,llm_re in enumerate(LLM_REs):
-		if verbose: print('\nEvaluation %2i/%2i' % (i+1, len(LLM_REs)), flush=True)
+	for i,llm_re in enumerate(classifiers):
+		if verbose: print('\nEvaluation %2i/%2i' % (i+1, len(classifiers)), flush=True)
 		llm_queries = queries[i] if diff_queries else queries
 		llm_true_labels = true_labels[i] if diff_queries else true_labels
 		preds = llm_re.evaluate(
@@ -245,22 +263,23 @@ def queue_evaluation(queries:list, true_labels:list, LLM_REs:list, log_file:str=
 	return all_preds
 	
 
-def bulk_create(params:dict, conflicts:list=False):
+def bulk_create(params:dict) -> list[LLMClassifier]:
 	'''Creates LLM_RE instances with all the possible combinations of `params` values by passing keys as kwargs
+	
 	:param params: {param_name:[values]}
-	:param conflicts: list of param value conflict tuples [(value1,value2),...]
+	:type params: dict
+	:return: A list containing all the LLMClassifier instances.
+	:rtype: list
 	'''
 	keys, values = zip(*params.items())
-	combos = list(itertools.product(*values))
-	if conflicts:
-		combos = [comb for comb in combos for conf in conflicts if not all(v in comb for v in conf)]		
+	combos = list(itertools.product(*values))		
 	llms = [dict(zip(keys, combo)) for combo in combos]
 	llms = [LLMClassifier(**llm_params) for llm_params in llms]
 	return llms
 
 
-def load_examples(file:str):
-	"""Returns examples loaded from a JSON file"""
+def load_examples(file:os.PathLike) -> list:
+	"""Returns examples loaded from a JSON file."""
 	examples = []
 	if os.path.exists(file):
 		with open(file, 'r') as f:
@@ -268,22 +287,22 @@ def load_examples(file:str):
 		return examples	
 
 
-def format_examples(examples, template):
+def format_examples(examples:list, template:str) -> list:
 	return [template.format_map(ex) for ex in examples]
 
 
-def generate_examples(examples_file:str, balance:bool, queries:list, preds:list, true_labels:list=False):
-	"""_summary_
+def generate_examples(examples_file:os.PathLike, balance:bool, queries:list, preds:list, true_labels:list=False):
+	"""Generates examples from `queries` and LLM `preds` and saves them into `examples_file`.
 
-	:param examples_file: _description_
+	:param examples_file: The JSON file to store the examples.
 	:type examples_file: str
-	:param balance: _description_
+	:param balance: Balance the examples to include equal number of positives and negatives?
 	:type balance: bool
-	:param queries: _description_
+	:param queries: The queries.
 	:type queries: list
-	:param preds: _description_
+	:param preds: The LLM predictions.
 	:type preds: list
-	:param true_labels: list of the true_labels, if given only correct preds will be saved as examples
+	:param true_labels: list of the true_labels, if given only correct preds will be saved as examples.
 	:type true_labels: list, optional
 	"""
 	raw_examples = load_examples(examples_file)
@@ -325,21 +344,9 @@ def generate_examples(examples_file:str, balance:bool, queries:list, preds:list,
 		json.dump(raw_examples, f, indent=1)
 
 
-def save_preds(file:os.PathLike, llm_re:LLMClassifier, preds:list, metadatas:list, true_labels:list=None):
-	"""_summary_
-
-	:param file: file to save preds, if not given a default path will be used: ./llm_preds/{model_name}_{n_shots}_{n_duplicates}.csv
-	:type file: PathLike
-	:param llm_re: _description_
-	:type llm_re: LLM_RE
-	:param preds: _description_
-	:type preds: list
-	:param true_labels: _description_
-	:type true_labels: list
-	:param metadatas: _description_
-	:type metadatas: list
-	"""
-	llm_info = llm_re.__dict__
+def save_preds(file:os.PathLike, classifier:LLMClassifier, preds:list, metadatas:list, true_labels:list=None):
+	"""Saves the `preds` of a `classifier` to `file`."""
+	llm_info = classifier.__dict__
 
 	output = {'sentence':[], 'e1':[], 'e1_ID':[], 'e2':[], 'e2_ID':[], 'pred':[]}
 	for i,pred in enumerate(preds):
