@@ -4,14 +4,14 @@ David da Costa Correia @ FCUL & INSA
 '''
 
 import pandas as pd
-
+from os import PathLike
 
 class RelationDataset():
 	"""
 	A RelationDataset enables uniform concatenation of relational databases.
 	Databases are added through `RelationDataset.add_database()`, and can be merged using `RelationDataset.merge_databases()`.
 	"""
-	def __init__(self, colnames:list):
+	def __init__(self, colnames:list[str]):
 		"""
 		:param colnames: the ordered names of the columns.
 		:type colnames: list
@@ -20,16 +20,16 @@ class RelationDataset():
 		self.dbs = {}
 		self.df = pd.DataFrame()
 
-	def add_database(self, input_files:str, processing_fn:callable, name:str):
+	def add_database(self, input_files:list[PathLike], processing_fn:callable, name:str) -> None:
 		"""Add a new database to the RelationDataset, given its `input_files`, `processing_fn` and `name`.
 
-		:param input_files: a list of paths to the database files
-		:type input_files: str
+		:param input_files: a list of paths to the database files.
+		:type input_files: list
 		:param processing_fn: the function that should process the input files and 
-		return pd.DataFrame with the columns defined in `RelationDataset.colnames` (except 'DATABASE_COLUMN').
+		return pd.DataFrame with the columns defined in `RelationDataset.colnames`.
 		The columns must come in the desired order.
 		:type processing_fn: callable
-		:param name: The name of the sub-database
+		:param name: The name of the database
 		:type name: str
 		:raises ValueError: when `processing_fn(input_files)` raises an exception; 
 		OR `if len(df.columns) != len(self.colnames)`.
@@ -45,12 +45,12 @@ class RelationDataset():
 
 		self.dbs[name] = df
 
-	def merge_databases(self, db_name_col:str=None):
+	def merge_databases(self, db_name_col:str=None) -> None:
 		"""Merges all the databases added to RelationDataset (using `RelationDataset.add_database()`).
 		To obtain the merged RelationDataset dataframe, `RelationDataset.get_df()` must be called.
 
 		:param db_name_col: the name of the column that will contain the name of the database of origin
-		of each row, if this new column is not desired, leave None
+		of each row, if this new column is not desired, leave None.
 		:type db_name_col: str, optional
 		"""
 		# Merge and add DB column
@@ -66,9 +66,9 @@ class RelationDataset():
 	def get_df(self) -> pd.DataFrame:
 		"""
 		:raises UserWarning: if the RelationDataset dataframe is empty.
-		:return: the RelationDataset dataframe.
+		:return: the RelationDataset DataFrame.
 		:rtype: pd.DataFrame
 		"""
 		if self.df.empty:
-			raise UserWarning("RelationDataset dataframe is empty. You might want to call RelationDataset.merge_databases()")
+			raise UserWarning("RelationDataset DataFrame is empty. You might want to call RelationDataset.merge_databases()")
 		return self.df

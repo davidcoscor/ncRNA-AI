@@ -12,6 +12,9 @@ from time import time
 
 import ollama
 
+JSONPathLike = os.PathLike
+CSVPathLike = os.PathLike
+
 class LLMClassifier:
 	"""
 	LLMClassifier wraps `ollama.generate()` to enable handling and evaluation of binary classification-like answers.
@@ -167,7 +170,7 @@ class LLMClassifier:
 		if verbose: print(f'Answer: \n{pred}\n\n')
 		return pred
 
-	def evaluate(self, queries:list[dict]|list[str], true_labels:list[int]=None, log_file:os.PathLike=None, verbose:bool=False) -> list:
+	def evaluate(self, queries:list[dict]|list[str], true_labels:list[int]=None, log_file:JSONPathLike=None, verbose:bool=False) -> list:
 		"""Calls predict on all `queries` and evaluates results if `true_labels` are passed, appeding to `log_file`.
 
 		:param queries: The list of all queries to be predicted.
@@ -219,7 +222,7 @@ class LLMClassifier:
 		return preds
 
 
-def rank_models(k, log_file:str, rank_file:str=None):
+def rank_models(k, log_file:JSONPathLike, rank_file:str=None):
 	'''Ranks the best `k` models in `log_file` and returns them, optionally writes to `rank_file`'''
 	with open(log_file, 'r') as f:
 		entries = json.load(f)
@@ -240,7 +243,7 @@ def rank_models(k, log_file:str, rank_file:str=None):
 	return best_entries
 
 
-def queue_evaluation(queries:list[dict]|list[str]|list[list], true_labels:list[int], classifiers:list[LLMClassifier], log_file:str=False, verbose=False):
+def queue_evaluation(queries:list[dict]|list[str]|list[list], true_labels:list[int], classifiers:list[LLMClassifier], log_file:JSONPathLike=False, verbose=False):
 	'''Calls `LLMClassifier.evaluate(queries, true_labels, log_file, verbose)` for each LLMClassifier instance in `classifiers`
 	
 	:param queries: The list of queries. Use list[list] to call different queries on each model queries[i] will be called on classifiers[i].
@@ -278,7 +281,7 @@ def bulk_create(params:dict) -> list[LLMClassifier]:
 	return llms
 
 
-def load_examples(file:os.PathLike) -> list:
+def load_examples(file:JSONPathLike) -> list:
 	"""Returns examples loaded from a JSON file."""
 	examples = []
 	if os.path.exists(file):
@@ -291,7 +294,7 @@ def format_examples(examples:list, template:str) -> list:
 	return [template.format_map(ex) for ex in examples]
 
 
-def generate_examples(examples_file:os.PathLike, balance:bool, queries:list, preds:list, true_labels:list=False):
+def generate_examples(examples_file:JSONPathLike, balance:bool, queries:list, preds:list, true_labels:list=False):
 	"""Generates examples from `queries` and LLM `preds` and saves them into `examples_file`.
 
 	:param examples_file: The JSON file to store the examples.
@@ -344,7 +347,7 @@ def generate_examples(examples_file:os.PathLike, balance:bool, queries:list, pre
 		json.dump(raw_examples, f, indent=1)
 
 
-def save_preds(file:os.PathLike, classifier:LLMClassifier, preds:list, metadatas:list, true_labels:list=None):
+def save_preds(file:CSVPathLike, classifier:LLMClassifier, preds:list, metadatas:list, true_labels:list=None):
 	"""Saves the `preds` of a `classifier` to `file`."""
 	llm_info = classifier.__dict__
 

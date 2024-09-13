@@ -35,26 +35,27 @@ import pandas as pd
 
 
 EmbeddingCollection = tuple[pd.DataFrame, list]
+CSVPathLike = os.PathLike
+OBOPathLike = os.PathLike
 
-
-def create_embedding_collection(path:os.PathLike, model:SentenceTransformer, ontology_file:os.PathLike, 
+def create_embedding_collection(path:CSVPathLike, model:SentenceTransformer, ontology_file:OBOPathLike, 
 								normalize_embeddings:bool=False, verbose:bool=False) -> EmbeddingCollection:
 	"""Creates an embedding collection given an OBO `ontology_file`. If the collection already exists, 
 	loads it instead. A collection is saved in a CSV file with D+1 columns where D is the size of the embeddings.
 	The last column contains the IDs attributed to each embedding.
 
-	:param path: the path to save/load the collection CSV file
+	:param path: the path to save/load the collection CSV file.
 	:type path: str
-	:param model: a SentenceTransformer object loaded with an embedding model
+	:param model: a SentenceTransformer object loaded with an embedding model.
 	:type model: SentenceTransformer
-	:param ontology_file: the ontology OBO files
+	:param ontology_file: the ontology OBO file.
 	:type ontology_file: str
 	:param verbose: verbose?
 	:type verbose: bool
 	:param normalize_embeddings: normalize the embeddings?
 	:type normalize_embeddings: bool
 	:return: tuple representing the collection `(embeddings:pd.DataFrame, ids:list)`
-	:rtype: tuple
+	:rtype: EmbeddingCollection
 	"""
 	if os.path.exists(path): # load
 		collection = pd.read_csv(path)
