@@ -8,7 +8,6 @@ David da Costa Correia @ FCUL & INSA
 		1. To add a new database, you need to define: i) input files, ii) processing functions.
 		Follow examples given.
 1. What this script does:
-	0. Implement a RelationDataset class that enables easy addition of new databases to the dataset
 	1. Process the databases and merge
 	2. Add RNA IDs and aliases
 	3. Perform NER of phenotypes
@@ -29,7 +28,7 @@ ARGS = {
 	'PHEN_ID_COLUMN': 'HPO ID',
 	# NER settings
 	'DISTANCE_METRIC': 'l2',
-    'MAX_DISTANCE': 0.9,
+    'MAX_DISTANCE': 0.5,
     'BATCH_SIZE': 1000,
     'DO_ANCESTOR_PROPAGATION': True,
 	# Others
@@ -37,7 +36,7 @@ ARGS = {
 	'DROP_NANS': True # At the end, drop rows with NaNs? (e.g. rows whose IDs could not be found)
 }
 DEBUG = False
-PRODUCE_NER_ANALYSIS = True
+PRODUCE_NER_ANALYSIS = False
 NER_ANALYSIS_SIZE = 200
 #######################################################################
 
