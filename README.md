@@ -1,5 +1,5 @@
 ## ncRNA-AI
-Source code supporting David da Costa Correia's MSc thesis project "Predicting non-coding RNA function using artificial intelligence".
+Source code supporting David da Costa Correia's MSc thesis project "Predicting non-coding RNA function using Artificial Intelligence".
 
 Supervised by Hugo Martiniano, PhD and Francisco Couto, PhD.
 
@@ -10,7 +10,7 @@ Executed at FCUL & INSA, Portugal in 2023-2024.
 - a ncRNA-Phenotype Relation Dataset aggregating 5 databases [Download](https://drive.google.com/file/d/188yDkbhe-FRWldzYFyLF695kr8yt3iC0/view?usp=sharing)
 - an embedding-based Entity Recognition and Linking pipeline (using FAISS and SentenceTransformers)
 - an Ollama-based LLM binary classification framework
-  - supporting an LLM Relation Extraction methodology
+  - supporting a LLM Relation Extraction methodology
 
 All the described pipelines are easily adaptable to work with any pair of entities.
 
