@@ -17,7 +17,7 @@ David da Costa Correia @ FCUL & INSA
 
 ### SETTINGS ##########################################################
 ARGS = {
-	'OUTPUT_FILE': './outputs/dataset/rel_dataset.csv',
+	'OUTPUT_FILE': './outputs/dataset/rel_dataset1.csv',
 	# Database columns
 	'RNA_NAME_COLUMN': 'ncRNA',
 	'PHEN_NAME_COLUMN': 'Disease',
@@ -194,7 +194,7 @@ def main(args=ARGS):
 	if VERBOSE: print('Merging databases', flush=True)
 	dataset.merge_databases(db_name_col=DATABASE_COLUMN)
 	dataset_df = dataset.get_df()
-	if DEBUG: print(len(dataset_df)) # DEBUG
+	if DEBUG: print("# DEBUG # Lenght of Relation Dataset: ", len(dataset_df))
 	
 
 	### NER of phenotypes ###
@@ -251,9 +251,9 @@ def main(args=ARGS):
 	if DEBUG:
 		debug_copy = dataset_df.copy(deep=True)
 		debug_copy.dropna(subset=PHEN_ID_COLUMN,inplace=True)
-		print(len(debug_copy))
+		print('unique rnas:', len(debug_copy[RNA_NAME_COLUMN].unique()))
+		print("# DEBUG # Lenght of Relation Dataset: ", len(debug_copy))
 		del debug_copy
-
 
 	### ADD RNA ALIASES AND IDS ###
 	if VERBOSE: print('\nAdding RNA aliases and IDs', flush=True)
@@ -303,26 +303,35 @@ def main(args=ARGS):
 	new_rows = pd.DataFrame(new_rows)
 	dataset_df = pd.concat([dataset_df, new_rows], ignore_index=True)
 	dataset_df.drop_duplicates(inplace=True)
-	if DEBUG: print(len(dataset_df))
+	if DEBUG: print("# DEBUG # Lenght of Relation Dataset: ", len(dataset_df))
 		
 	# Link RNA IDs
 	if VERBOSE: print('\tLinking RNAs to IDs', flush=True)
 	dataset_df[RNA_ID_COLUMN] = pd.Series(dtype=str)
-	for i,rna in enumerate(dataset_df[RNA_NAME_COLUMN]):
-		queries = [rna, rna.replace('hsa-',''), rna.replace('hsa_','')]
+	unique_rnas = dataset_df[RNA_NAME_COLUMN].unique().tolist()
+	unique_rna_queries = {
+		rna:[rna, rna.replace('hsa-',''), rna.replace('hsa_','')]
+		for rna in unique_rnas
+	}
+
+	matches = {}
+	for rna,queries in unique_rna_queries.items():
 		# Search for the first query that returns a RNAC ID
 		for query in queries:
 			rna_id = rna_ids.get(query)
 			if rna_id is not None:
-				dataset_df.loc[i, RNA_ID_COLUMN] = rna_id
+				matches[rna] = rna_id
 				break
+	dataset_df[RNA_ID_COLUMN] = dataset_df[RNA_NAME_COLUMN].apply(lambda rna: matches.get(rna))
 	dataset_df.drop_duplicates(inplace=True)
+	del unique_rnas, unique_rna_queries
+
 	if DEBUG:
 		debug_copy = dataset_df.copy(deep=True)
-		debug_copy.dropna(inplace=True)
-		print(len(debug_copy))
+		debug_copy.dropna(inplace=True, subset=RNA_ID_COLUMN)
+		print("# DEBUG # Lenght of Relation Dataset: ", len(debug_copy))
+		print('unique rnas:', len(debug_copy[RNA_NAME_COLUMN].unique()))
 		del debug_copy
-
 
 	### PROPAGATE RELATIONS TO PHENOTYPE ANCESTORS ###
 	if DO_ANCESTOR_PROPAGATION:
@@ -371,7 +380,7 @@ def main(args=ARGS):
 		if DEBUG:
 			debug_copy = dataset_df.copy(deep=True)
 			debug_copy.dropna(inplace=True)
-			print(len(debug_copy))
+			print("# DEBUG # Lenght of Relation Dataset: ", len(debug_copy))
 			del debug_copy
 
 
@@ -389,8 +398,8 @@ def main(args=ARGS):
 	}
 	dataset_df = dataset_df.astype(dtypes)
 	os.makedirs(os.path.dirname(OUTPUT_FILE), exist_ok=True)
+	if DEBUG: OUTPUT_FILE = os.path.splitext(OUTPUT_FILE)[0]+'_debug.csv'
 	dataset_df.to_csv(OUTPUT_FILE, sep='\t', index=False, na_rep='None')
-	if DEBUG: OUTPUT_FILE = os.path.splitext(OUTPUT_FILE)+'_debug.csv'
 	if VERBOSE: print(f'Relation Dataset creation done. Saved to {OUTPUT_FILE}', flush=True)
 
 
