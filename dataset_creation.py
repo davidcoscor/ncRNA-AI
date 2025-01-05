@@ -17,7 +17,7 @@ David da Costa Correia @ FCUL & INSA
 
 ### SETTINGS ##########################################################
 ARGS = {
-	'OUTPUT_FILE': './outputs/dataset/rel_dataset1.csv',
+	'OUTPUT_FILE': './outputs/dataset/rel_dataset.csv',
 	# Database columns
 	'RNA_NAME_COLUMN': 'ncRNA',
 	'PHEN_NAME_COLUMN': 'Disease',
